@@ -52,3 +52,11 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# Numpy
+*.npy
+*.npz
+
+# V-REP
+vrep.py
+vrepConst.py
