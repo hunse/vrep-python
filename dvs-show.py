@@ -1,65 +1,36 @@
-
-import time
-
+"""
+Show recorded DVS data (currently from the V-REP simulator)
+"""
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.animation
-plt.ion()
 
-DEBUG = False
+import dvs
 
-events = np.load('dvs-epuck-27s.npy')
-# events = np.load('dvs-ball-2s.npy')
-ts = events['t'] / 1000.
-assert (np.diff(ts) >= 0).all()
 
-dt = 1e-3
-t0 = 6.0
-t1 = t0 + 1.5
-nt = int((t1 - t0) / dt) + 1
-# nt = min(nt, 1000)  # cap at 1000 for now
+# filename = 'dvs.npz'
+# filename = 'dvs-ball-1ms.npz'
+filename = 'dvs-epuck-stereo-2.npz'
+events = dvs.load(filename, dt_round=True)
 
-image = np.zeros((128, 128))
-images = np.zeros((nt, 128, 128))
+stereo = isinstance(events, tuple) and len(events) == 2
+if stereo:
+    events0, events1 = events
+else:
+    events0 = events
 
-for i in range(nt):
-    # --- decay image
-    image *= np.exp(-dt / 0.01)
-    # image *= 0
+plt.figure(101)
+diffs = np.diff(np.unique(events0['t']))
+plt.hist(diffs)
 
-    # --- add events
-    ti = t0 + i * dt
-    eventsi = events[ts == ti]
+plt.figure(1)
+times = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
+for i in range(6):
+    plt.subplot(2, 3, i+1)
+    dvs.imshow(dvs.as_image(events0[dvs.close(events0['t'], times[i])]))
+    plt.title("t = %0.3f" % times[i])
 
-    for x, y, s, _ in eventsi:
-        image[y, x] += 1 if s else -1
+plt.figure(2)
+axs = [plt.subplot(1, 2, i+1) for i in range(2)] if stereo else plt.gca()
+ani = dvs.show(events, stereo=stereo, axs=axs)
 
-    images[i] = image
-
-# --- average in frames
-dt_frame = 0.01
-nt_frame = int(dt_frame / dt)
-nt_video = int(nt / nt_frame)
-
-video_image = np.zeros((nt_video, 128, 128))
-for i in range(nt_video):
-    slicei = slice(i*nt_frame, (i+1)*nt_frame)
-    video_image[i] = np.sum(images[slicei], axis=0)
-
-# --- play video
-fig = plt.figure(1)
-fig.clf()
-axes = [plt.gca()]
-
-plt_image = axes[0].imshow(video_image[0], vmin=-1, vmax=1, cmap='gray', interpolation=None)
-axes[0].invert_yaxis()
-
-def update(i, video_image, axes, plt_image):
-    plt_image.set_data(video_image[i])
-    axes[0].set_title("t = %0.3f" % ((i + 1) * dt_frame))
-    return plt_image,
-
-ani = matplotlib.animation.FuncAnimation(
-    fig, update, nt_video,
-    fargs=(video_image, axes, plt_image),
-    interval=10, blit=False)
+plt.show()

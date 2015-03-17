@@ -6,6 +6,14 @@ import matplotlib.pyplot as plt
 import matplotlib.animation
 plt.ion()
 
+import dvs
+
+filename = 'dvs-ball-1ms.npz'
+events = dvs.load(filename, dt_round=True)
+
+dvs.flow(events, debug=True)
+assert False
+
 def imshow(image, ax=None):
     ax = plt.gca() if ax is None else ax
     # ax.imshow(image, vmin=-1, vmax=1, cmap='gray', interpolation=None)
@@ -74,26 +82,13 @@ for it in range(nt):
     else:
         # calculate derivative on smoothed image
         # TODO: be more efficient
-
         import cv2
-        grid = cv2.GaussianBlur(grid, (9, 9), 1)
-        dx = np.array(grid)
+        # grid_s = cv2.GaussianBlur(grid, (9, 9), 1)
+        grid_s = cv2.GaussianBlur(grid, (9, 9), 3)
+        dx = np.array(grid_s)
         dx[:, 1:] -= dx[:, :-1]
-        dy = np.array(grid)
+        dy = np.array(grid_s)
         dy[1:, :] = np.diff(dy, axis=0)
-
-        # kernel = np.convolve(gaussian(np.arange(-6, 7), std=3), [-1, 1])
-        # # print(kernel)
-
-        # dx = np.array(grid)
-        # for row in dx:
-        #     row[:] = np.convolve(row, kernel, mode='same')
-
-        # dy = np.array(grid)
-        # for col in dy.T:
-        #     col[:] = np.convolve(col, kernel, mode='same')
-
-
 
     dT = grid / (dt * n_grids)
 
